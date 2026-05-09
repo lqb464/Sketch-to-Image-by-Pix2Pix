@@ -1,0 +1,4 @@
+scikit-image
+dominate>=2.8.0
+Pillow>=10.0.0
+wandb>=0.16.0
