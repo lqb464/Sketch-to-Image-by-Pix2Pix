@@ -1,0 +1,63 @@
+# =============================================================================
+# Model 1 — UNet Standalone (không GAN)
+# Người phụ trách: Trang
+# Mô tả: UNet encoder-decoder thuần túy, train với pixel-wise L1/L2 loss,
+#         không có Discriminator. Nhẹ nhất trong 3 model, dùng làm baseline so sánh.
+# =============================================================================
+
+# --- Dataset ---
+dataroot: ./datasets/sketch10        # dataset do Bình chuẩn bị (10 objects)
+dataset_mode: aligned                # ảnh đôi A|B ghép ngang
+direction: AtoB                      # A = sketch, B = ảnh thật
+load_size: 286                       # resize trước khi crop (giữ để augment)
+crop_size: 256                       # crop về 256×256 khi train
+preprocess: resize_and_crop          # resize → random crop
+no_flip: false                       # bật random horizontal flip (augmentation)
+num_threads: 2
+
+# --- Model ---
+model: unet_standalone               # class tự viết trong models/unet_model.py
+netG: unet_256                       # UNet với 8 lớp down/up (input 256×256)
+norm: batch                          # BatchNorm — ổn định hơn InstanceNorm khi batch > 1
+no_dropout: false                    # bật Dropout trong decoder (regularization)
+init_type: normal
+init_gain: 0.02
+
+# --- Loss ---
+loss: l1                             # pixel-wise L1 loss (không có GAN loss)
+# loss: l2                           # thay bằng MSE nếu muốn ablation
+
+# --- Train ---
+batch_size: 4                        # Kaggle T4: batch 4 vừa đủ bộ nhớ
+n_epochs: 100                        # epoch giữ lr cố định
+n_epochs_decay: 100                  # epoch decay lr tuyến tính về 0 → tổng 200 epoch
+lr: 0.0002
+lr_policy: linear
+beta1: 0.5                           # Adam β1
+
+# --- Reproducibility ---
+seed: 42
+
+# --- Checkpointing ---
+save_latest_freq: 5000               # lưu latest mỗi 5000 iter
+save_epoch_freq: 20                  # lưu checkpoint mỗi 20 epoch
+save_by_iter: false
+
+# --- Logging & W&B ---
+use_wandb: true
+wandb_project: sketch-to-image
+display_freq: 400
+print_freq: 100
+
+# --- Output ---
+name: m1_unet_baseline               # tên experiment → checkpoints/m1_unet_baseline/
+checkpoints_dir: ./checkpoints
+
+# =============================================================================
+# Ablation variants (copy file này, đổi tên, chỉ sửa dòng cần thay đổi):
+#
+#   m1_unet_depth4:    netG: unet_128  (giảm độ sâu, test với input 128×128)
+#   m1_unet_loss_l2:   loss: l2        (so sánh L1 vs L2)
+#   m1_unet_nodrop:    no_dropout: true (tắt Dropout)
+#   m1_unet_instanorm: norm: instance  (so sánh BatchNorm vs InstanceNorm)
+# =============================================================================

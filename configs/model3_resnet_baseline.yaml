@@ -1,0 +1,92 @@
+# =============================================================================
+# Model 3 — Pix2Pix biến thể (ResNet Generator + Transfer Learning)
+# Người phụ trách: Thi
+# Mô tả: Thay UNet Generator bằng ResNet-9blocks. Dùng pretrained weights
+#         từ ImageNet (qua torchvision) cho encoder ResNet → fine-tune các lớp cuối.
+#         Đây là phần Transfer Learning đáp ứng yêu cầu "Tối ưu hóa kiến trúc
+#         và Tài nguyên" (25%) của giáo viên.
+#         LoRA fine-tuning (L1-LoRA) sẽ dùng config riêng trong lora/configs/.
+# =============================================================================
+
+# --- Dataset ---
+dataroot: ./datasets/sketch10        # dataset do Bình chuẩn bị (10 objects)
+dataset_mode: aligned
+direction: AtoB                      # A = sketch, B = ảnh thật
+load_size: 286
+crop_size: 256
+preprocess: resize_and_crop
+no_flip: false
+num_threads: 2
+
+# --- Model ---
+model: pix2pix
+netG: resnet_9blocks                 # ResNet Generator 9 residual blocks
+netD: basic                          # giữ PatchGAN 70×70 như pix2pix gốc
+norm: instance                       # ResNet Generator dùng InstanceNorm (chuẩn paper)
+no_dropout: true                     # ResNet thường không dùng Dropout
+init_type: normal
+init_gain: 0.02
+gan_mode: vanilla
+
+# --- Transfer Learning ---
+pretrained_encoder: true             # bật flag này (cần thêm vào options/base_options.py)
+freeze_encoder_epochs: 20            # freeze encoder 20 epoch đầu, chỉ train decoder + D
+                                     # sau đó unfreeze toàn bộ để fine-tune
+
+# --- Loss weight ---
+lambda_L1: 100
+
+# --- Train ---
+batch_size: 4                        # ResNet nặng hơn UNet, giữ batch_size = 4
+n_epochs: 100
+n_epochs_decay: 100                  # tổng 200 epoch
+lr: 0.0001                           # lr nhỏ hơn vì dùng pretrained (tránh phá vỡ weights)
+lr_policy: linear
+beta1: 0.5
+
+# --- Reproducibility ---
+seed: 42
+
+# --- Checkpointing ---
+save_latest_freq: 5000
+save_epoch_freq: 20
+save_by_iter: false
+
+# --- Logging & W&B ---
+use_wandb: true
+wandb_project: sketch-to-image
+display_freq: 400
+print_freq: 100
+
+# --- Output ---
+name: m3_pix2pix_resnet_pretrained   # tên experiment
+checkpoints_dir: ./checkpoints
+
+# =============================================================================
+# Ablation variants (copy file này, đổi tên, chỉ sửa dòng cần thay đổi):
+#
+#   m3_pix2pix_resnet_scratch:
+#       pretrained_encoder: false    # train từ đầu để so sánh với transfer learning
+#       lr: 0.0002
+#
+#   m3_pix2pix_resnet_frozen_full:
+#       freeze_encoder_epochs: 200   # freeze encoder suốt quá trình train
+#                                    # (chỉ train decoder + Discriminator)
+#
+#   m3_pix2pix_resnet6blocks:
+#       netG: resnet_6blocks         # nhẹ hơn, so sánh 6 vs 9 blocks
+#
+#   m3_pix2pix_resnet_lambda50:
+#       lambda_L1: 50
+# =============================================================================
+
+
+# =============================================================================
+# LoRA fine-tuning (task L1-LoRA) — xem config riêng tại:
+#   lora/configs/lora_<class>_rank<r>.yaml
+#
+# Ý tưởng: sau khi có checkpoint m3_pix2pix_resnet_pretrained ổn định,
+# apply LoRA để fine-tune tập trung vào 1 class cụ thể (ví dụ: airplane).
+# LoRA chỉ thêm ma trận rank thấp vào các lớp Linear/Conv → tiết kiệm GPU,
+# đáp ứng yêu cầu PEFT của giáo viên.
+# =============================================================================

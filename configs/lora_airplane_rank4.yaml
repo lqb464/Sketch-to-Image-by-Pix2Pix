@@ -1,0 +1,70 @@
+# =============================================================================
+# LoRA Fine-tuning Config — Model 3 (Pix2Pix ResNet Generator)
+# Người phụ trách: Thi (task L1-LoRA)
+# Mục đích: Fine-tune tập trung vào 1 class cụ thể (ví dụ: airplane)
+#            với lượng tham số rất nhỏ — đáp ứng yêu cầu PEFT của giáo viên.
+# Dependency: cần checkpoint m3_pix2pix_resnet_pretrained đã train ổn định.
+# =============================================================================
+
+# --- Checkpoint gốc để fine-tune từ ---
+base_checkpoint: ./checkpoints/m3_pix2pix_resnet_pretrained/latest_net_G.pth
+
+# --- Dataset (chỉ 1 class) ---
+dataroot: ./datasets/sketch10_airplane   # subset chỉ gồm class airplane
+dataset_mode: aligned
+direction: AtoB
+load_size: 286
+crop_size: 256
+preprocess: resize_and_crop
+no_flip: false
+num_threads: 2
+
+# --- LoRA hyperparameters ---
+lora_rank: 4                         # rank của ma trận thêm vào (r=4 là nhẹ)
+lora_alpha: 8                        # scaling factor = alpha / rank = 2.0
+lora_dropout: 0.05
+lora_target_modules:                 # các lớp được thêm LoRA adapter
+  - conv1                            # lớp conv trong ResNet blocks
+  - conv2
+  # Ghi chú: chỉ target Conv trong residual blocks, không target norm layers
+
+# --- Train ---
+batch_size: 4
+n_epochs: 30                         # LoRA hội tụ nhanh hơn full fine-tune
+n_epochs_decay: 10                   # tổng 40 epoch
+lr: 0.00005                          # lr rất nhỏ để không phá vỡ pretrained weights
+lr_policy: linear
+beta1: 0.5
+lambda_L1: 100
+gan_mode: vanilla
+
+# --- Reproducibility ---
+seed: 42
+
+# --- Checkpointing ---
+save_latest_freq: 1000
+save_epoch_freq: 10
+
+# --- Logging & W&B ---
+use_wandb: true
+wandb_project: sketch-to-image
+wandb_tags:
+  - lora
+  - airplane
+  - peft
+display_freq: 200
+print_freq: 50
+
+# --- Output ---
+name: lora_airplane_rank4            # → lora/checkpoints/lora_airplane_rank4/
+checkpoints_dir: ./lora/checkpoints
+
+# =============================================================================
+# Ablation LoRA (copy file này, chỉ sửa rank để so sánh):
+#
+#   lora_airplane_rank2:   lora_rank: 2, lora_alpha: 4
+#   lora_airplane_rank8:   lora_rank: 8, lora_alpha: 16
+#
+# Mục tiêu: chứng minh rank nhỏ vẫn đạt kết quả gần tương đương rank lớn
+# → minh họa tính hiệu quả của PEFT so với full fine-tune.
+# =============================================================================
