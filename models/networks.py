@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
+import torchvision.models as models
 
 
 ###############################################################################
@@ -129,7 +130,7 @@ def init_net(net, init_type="normal", init_gain=0.02):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm="batch", use_dropout=False, init_type="normal", init_gain=0.02):
+def define_G(input_nc, output_nc, ngf, netG, norm="batch", freeze_encoder=True, use_dropout=False, init_type="normal", init_gain=0.02):
     """Create a generator
 
     Parameters:
@@ -155,6 +156,8 @@ def define_G(input_nc, output_nc, ngf, netG, norm="batch", use_dropout=False, in
         net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == "unet_256":
         net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+    elif netG == 'vgg':
+        net = VGGGenerator(input_nc, output_nc, 64, norm_layer=norm_layer, use_dropout=use_dropout, freeze_encoder=freeze_encoder)
     else:
         raise NotImplementedError("Generator model name [%s] is not recognized" % netG)
     return net
@@ -513,46 +516,80 @@ class UnetSkipConnectionBlock(nn.Module):
             return self.model(x)
         else:  # add skip connections
             return torch.cat([x, self.model(x)], 1)
+        
+class VGGGenerator(nn.Module):
+    def __init__(self, input_nc, output_nc, ngf=64,
+                 norm_layer=nn.BatchNorm2d, use_dropout=False,
+                 freeze_encoder=True):
+        super(VGGGenerator, self).__init__()
 
-
-class NLayerDiscriminator(nn.Module):
-    """Defines a PatchGAN discriminator"""
-
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
-        """Construct a PatchGAN discriminator
-
-        Parameters:
-            input_nc (int)  -- the number of channels in input images
-            ndf (int)       -- the number of filters in the last conv layer
-            n_layers (int)  -- the number of conv layers in the discriminator
-            norm_layer      -- normalization layer
-        """
-        super(NLayerDiscriminator, self).__init__()
-        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+        if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
 
-        kw = 4
-        padw = 1
-        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
-        nf_mult = 1
-        nf_mult_prev = 1
-        for n in range(1, n_layers):  # gradually increase the number of filters
-            nf_mult_prev = nf_mult
-            nf_mult = min(2**n, 8)
-            sequence += [nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias), norm_layer(ndf * nf_mult), nn.LeakyReLU(0.2, True)]
+        # --- Encoder: VGG19 pretrained ---
+        vgg = models.vgg19(weights=models.VGG19_Weights.DEFAULT).features
+        self.enc1 = vgg[:4]
+        self.enc2 = vgg[4:9]
+        self.enc3 = vgg[9:18]
+        self.enc4 = vgg[18:27]
+        self.enc5 = vgg[27:36]
 
-        nf_mult_prev = nf_mult
-        nf_mult = min(2**n_layers, 8)
-        sequence += [nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias), norm_layer(ndf * nf_mult), nn.LeakyReLU(0.2, True)]
+        if freeze_encoder:
+            for enc in [self.enc1, self.enc2, self.enc3, self.enc4, self.enc5]:
+                for param in enc.parameters():
+                    param.requires_grad = False
 
-        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]  # output 1 channel prediction map
-        self.model = nn.Sequential(*sequence)
+        # --- Decoder ---
+        uprelu = nn.ReLU(True)
 
-    def forward(self, input):
-        """Standard forward."""
-        return self.model(input)
+        upconv5 = nn.ConvTranspose2d(512,  512,  kernel_size=4, stride=2, padding=1, bias=use_bias)
+        upconv4 = nn.ConvTranspose2d(1024, 256,  kernel_size=4, stride=2, padding=1, bias=use_bias)
+        upconv3 = nn.ConvTranspose2d(512,  128,  kernel_size=4, stride=2, padding=1, bias=use_bias)
+        upconv2 = nn.ConvTranspose2d(256,  64,   kernel_size=4, stride=2, padding=1, bias=use_bias)
+        upconv1 = nn.ConvTranspose2d(128,  64,   kernel_size=4, stride=2, padding=1, bias=use_bias)
+
+        upnorm5 = norm_layer(512)
+        upnorm4 = norm_layer(256)
+        upnorm3 = norm_layer(128)
+        upnorm2 = norm_layer(64)
+
+        if use_dropout:
+            self.dec5 = nn.Sequential(upconv5, upnorm5, uprelu, nn.Dropout(0.5))
+            self.dec4 = nn.Sequential(upconv4, upnorm4, uprelu, nn.Dropout(0.5))
+            self.dec3 = nn.Sequential(upconv3, upnorm3, uprelu, nn.Dropout(0.5))
+            self.dec2 = nn.Sequential(upconv2, upnorm2, uprelu, nn.Dropout(0.5))
+        else:
+            self.dec5 = nn.Sequential(upconv5, upnorm5, uprelu)
+            self.dec4 = nn.Sequential(upconv4, upnorm4, uprelu)
+            self.dec3 = nn.Sequential(upconv3, upnorm3, uprelu)
+            self.dec2 = nn.Sequential(upconv2, upnorm2, uprelu)
+
+        # Lớp cuối: không norm, không dropout, output Tanh
+        self.dec1 = nn.Sequential(upconv1, uprelu, nn.Conv2d(64, output_nc, kernel_size=3, padding=1), nn.Tanh())
+
+    def forward(self, x):
+        e1 = self.enc1(x)
+        e2 = self.enc2(e1)
+        e3 = self.enc3(e2)
+        e4 = self.enc4(e3)
+        e5 = self.enc5(e4)
+
+        def crop(src, target):
+            return src[:, :, :target.shape[2], :target.shape[3]]
+
+        d5 = self.dec5(e5)
+        d4 = self.dec4(torch.cat([d5, crop(e4, d5)], dim=1))
+        d3 = self.dec3(torch.cat([d4, crop(e3, d4)], dim=1))
+        d2 = self.dec2(torch.cat([d3, crop(e2, d3)], dim=1))
+        out = self.dec1(torch.cat([d2, crop(e1, d2)], dim=1))
+
+        return nn.functional.interpolate(
+            out, size=(x.shape[2], x.shape[3]),
+            mode='bilinear', align_corners=False
+        )
+
 
 
 class PixelDiscriminator(nn.Module):
