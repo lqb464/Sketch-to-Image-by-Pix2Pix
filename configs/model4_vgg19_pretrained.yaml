@@ -27,7 +27,7 @@ num_threads: 2
 # --- Model ---
 model: pix2pix
 netG: vgg                            # VGG19 pretrained encoder + skip-connection decoder
-netD: pixel                         # PatchGAN 70×70 — giữ nguyên như pix2pix gốc
+netD: basic                         # PatchGAN 70×70 — giữ nguyên như pix2pix gốc
 norm: batch                          # BatchNorm — ổn định hơn InstanceNorm với VGG decoder
 no_dropout: false                    # bật Dropout trong decoder (regularization)
 init_type: normal
