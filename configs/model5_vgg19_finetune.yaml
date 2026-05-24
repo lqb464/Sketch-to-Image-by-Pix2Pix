@@ -1,5 +1,5 @@
 # =============================================================================
-# Model 4 — Pix2Pix + VGG19 Fine-tuned Generator
+# Model 5 — Pix2Pix + VGG19 Fine-tuned Generator
 # Mô tả: Thay UNet/ResNet Generator bằng VGGGenerator — encoder dùng
 #         VGG19 pretrained trên ImageNet, decoder là 5 skip-connection blocks
 #         (kiến trúc UNet-style nhưng encoder là VGG19 thay vì conv-from-scratch).
@@ -9,7 +9,7 @@
 #   Giai đoạn 2 (epoch 51–100): freeze_encoder=False → unfreeze toàn bộ, fine-tune
 #                                 lr = 0.00005 (nhỏ hơn để bảo vệ pretrained weights)
 #
-# Để chạy giai đoạn 2: copy config này, đặt tên m4_vgg_finetune.yaml,
+# Để chạy giai đoạn 2: copy config này, đặt tên m5_vgg_finetune.yaml,
 #   bật continue_train: true, đổi freeze_encoder: false, lr: 0.00005
 # =============================================================================
 
@@ -64,31 +64,31 @@ display_freq: 400
 print_freq: 100
 
 # --- Output ---
-name: m4_vgg_pretrained_frozen       # tên experiment giai đoạn 1
+name: m5_vgg_pretrained_frozen       # tên experiment giai đoạn 1
 checkpoints_dir: ./checkpoints
 
 # =============================================================================
 # Ablation variants:
 #
-#   m4_vgg_finetune (giai đoạn 2 — unfreeze toàn bộ):
-#       name: m4_vgg_pretrained_finetune
+#   m5_vgg_finetune (giai đoạn 2 — unfreeze toàn bộ):
+#       name: m5_vgg_pretrained_finetune
 #       freeze_encoder: false
 #       lr: 0.00005               # lr nhỏ để tránh phá vỡ pretrained weights
 #       continue_train: true
-#       epoch: latest             # load từ checkpoint m4_vgg_pretrained_frozen
+#       epoch: latest             # load từ checkpoint m5_vgg_pretrained_frozen
 #
-#   m4_vgg_frozen_full (freeze encoder suốt 200 epoch):
+#   m5_vgg_frozen_full (freeze encoder suốt 200 epoch):
 #       freeze_encoder: true
 #       n_epochs: 100
 #       n_epochs_decay: 100
 #       lr: 0.0002
 #
-#   m4_vgg_lsgan (thay GAN loss):
+#   m5_vgg_lsgan (thay GAN loss):
 #       gan_mode: lsgan
 #
-#   m4_vgg_lambda50 (giảm L1 weight):
+#   m5_vgg_lambda50 (giảm L1 weight):
 #       lambda_L1: 50
 #
-#   m4_vgg_batch2 (nếu OOM trên T4):
+#   m5_vgg_batch2 (nếu OOM trên T4):
 #       batch_size: 2
 # =============================================================================
