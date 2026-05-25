@@ -30,6 +30,18 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--pool_size', type=int, default=50, help='the size of image buffer that stores previously generated images')
         parser.add_argument('--lr_policy', type=str, default='linear', help='learning rate policy. [linear | step | plateau | cosine]')
         parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
+        # periodic test-set evaluation and logging parameters
+        parser.add_argument('--eval_test_freq', type=int, default=0, help='if > 0, run test-set evaluation every N training iterations')
+        parser.add_argument('--eval_phase', type=str, default='test', help='dataset split name used for periodic evaluation')
+        parser.add_argument('--num_test', type=int, default=100, help='number of test images to evaluate during periodic evaluation')
+        parser.add_argument('--eval_batch_size', type=int, default=1, help='batch size for periodic evaluation')
+        parser.add_argument('--eval_num_threads', type=int, default=0, help='num workers for periodic evaluation dataloader')
+        parser.add_argument('--eval_flip', action='store_true', help='enable horizontal flip augmentation on eval split (disabled by default)')
+        parser.add_argument('--eval_num_fid_images', type=int, default=100, help='number of generated/real test images used for FID/KID')
+        parser.add_argument('--eval_kid_subsets', type=int, default=10, help='number of subsets used by KID')
+        parser.add_argument('--eval_kid_subset_size', type=int, default=50, help='subset size used by KID')
+        parser.add_argument('--no_eval_test_images', action='store_true', help='disable logging test visuals to wandb during periodic evaluation')
+        parser.add_argument('--eval_max_dataset_size', type=int, default=float("inf"), help='cap on periodic evaluation dataset size')
 
         self.isTrain = True
         return parser
