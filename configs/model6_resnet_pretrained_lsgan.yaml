@@ -53,7 +53,7 @@ print_freq: 100
 num_test: 100
 
 # --- Output ---
-name: m6_resnet18_lambda200_basic_lsgan
+name: m6_resnet18_lambda100_basic_lsgan
 checkpoints_dir: ./checkpoints
 
 # =============================================================================
