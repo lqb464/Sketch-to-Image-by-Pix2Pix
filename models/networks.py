@@ -3,7 +3,8 @@ import torch.nn as nn
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
-import torchvision.models as models, get_model
+import torchvision.models as models
+from torchvision.models import get_model
 
 
 class Identity(nn.Module):
