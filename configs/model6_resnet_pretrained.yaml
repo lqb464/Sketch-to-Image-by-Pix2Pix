@@ -6,7 +6,7 @@
 # --- Dataset ---
 dataroot: ./datasets/sketch10
 dataset_mode: aligned
-direction: BtoA
+direction: AtoB
 load_size: 286
 crop_size: 256
 preprocess: resize_and_crop
