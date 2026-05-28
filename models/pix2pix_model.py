@@ -55,10 +55,15 @@ class Pix2PixModel(BaseModel):
             self.model_names = ["G"]
         self.device = opt.device
         # define networks (both generator and discriminator)
-        self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG,
-                               opt.norm, not opt.no_dropout, opt.init_type, 
-                               opt.init_gain, opt.backbone,  
-                               opt.freeze_encoder)           
+        self.netG = networks.define_G(
+                    opt.input_nc, opt.output_nc, opt.ngf, opt.netG,
+                    norm=opt.norm,
+                    backbone=opt.backbone,
+                    freeze_encoder=opt.freeze_encoder,
+                    use_dropout=not opt.no_dropout,
+                    init_type=opt.init_type,
+                    init_gain=opt.init_gain
+                    ).to(self.device)           
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD, opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain)
 
