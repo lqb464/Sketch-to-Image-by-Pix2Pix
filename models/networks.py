@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
-import torchvision.models as models
+import torchvision.models as models, get_model
 
 
 class Identity(nn.Module):
@@ -80,7 +80,7 @@ def init_net(net, init_type="normal", init_gain=0.02):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm="batch", freeze_encoder=True, use_dropout=False, init_type="normal", init_gain=0.02):
+def define_G(input_nc, output_nc, ngf, netG, norm="batch", backbone="resnet18", freeze_encoder=True, use_dropout=False, init_type="normal", init_gain=0.02):
     norm_layer = get_norm_layer(norm_type=norm)
     if netG == "resnet_9blocks":
         net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
@@ -92,6 +92,13 @@ def define_G(input_nc, output_nc, ngf, netG, norm="batch", freeze_encoder=True, 
         net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == "vgg":
         net = VGGGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, freeze_encoder=freeze_encoder)
+    elif netG == 'resnet_pretrained':
+        net = ResNetGenerator(input_nc, output_nc, 
+                             backbone=backbone,
+                             freeze_encoder=freeze_encoder)
+        for name, module in net.named_children():
+            if name.startswith('dec') or name == 'final':
+                init_weights(module, init_type, init_gain)      
     else:
         raise NotImplementedError("Generator model name [%s] is not recognized" % netG)
     return net
@@ -419,6 +426,76 @@ class NLayerDiscriminator(nn.Module):
     def forward(self, input):
         """Standard forward."""
         return self.model(input)
+    
+
+class ResNetGenerator(nn.Module):
+    def __init__(self, input_nc=3, output_nc=3, backbone='resnet18',
+                 pretrained=True, freeze_encoder=True):
+        super().__init__()
+
+        # --- Load pretrained backbone ---
+        backbone = backbone.lower()
+        try:
+            resnet = get_model(backbone, weights='DEFAULT' if pretrained else None)
+        except ValueError:
+            raise ValueError(f"backbone '{backbone}' not found in torchvision.models")
+
+        # --- Encoder ---
+        self.enc0 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu)
+        self.enc1 = nn.Sequential(resnet.maxpool, resnet.layer1)
+        self.enc2 = resnet.layer2
+        self.enc3 = resnet.layer3
+        self.enc4 = resnet.layer4
+
+        # --- Tự động lấy channels ---
+        with torch.no_grad():
+            dummy = torch.zeros(1, 3, 256, 256)
+            e0 = self.enc0(dummy)
+            e1 = self.enc1(e0)
+            e2 = self.enc2(e1)
+            e3 = self.enc3(e2)
+            e4 = self.enc4(e3)
+        ch = [e0.shape[1], e1.shape[1], e2.shape[1], e3.shape[1], e4.shape[1]]
+
+        # --- Decoder ---
+        self.dec4 = self._up_block(ch[4],     ch[3])
+        self.dec3 = self._up_block(ch[3] * 2, ch[2])
+        self.dec2 = self._up_block(ch[2] * 2, ch[1])
+        self.dec1 = self._up_block(ch[1] * 2, ch[0])
+        self.dec0 = self._up_block(ch[0] * 2, 64)
+
+        self.final = nn.Sequential(
+            nn.Conv2d(64, output_nc, kernel_size=7, padding=3),
+            nn.Tanh()
+        )
+
+        # --- Freeze encoder nếu cần ---
+        if freeze_encoder:
+            for name, param in self.named_parameters():
+                if name.startswith('enc'):
+                    param.requires_grad = False
+
+    def _up_block(self, in_ch, out_ch):
+        return nn.Sequential(
+            nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1),
+            nn.InstanceNorm2d(out_ch),
+            nn.ReLU(True)
+        )
+
+    def forward(self, x):
+        e0 = self.enc0(x)
+        e1 = self.enc1(e0)
+        e2 = self.enc2(e1)
+        e3 = self.enc3(e2)
+        e4 = self.enc4(e3)
+
+        d4 = self.dec4(e4)
+        d3 = self.dec3(torch.cat([d4, e3], dim=1))
+        d2 = self.dec2(torch.cat([d3, e2], dim=1))
+        d1 = self.dec1(torch.cat([d2, e1], dim=1))
+        d0 = self.dec0(torch.cat([d1, e0], dim=1))
+
+        return self.final(d0)
 
 class PixelDiscriminator(nn.Module):
     """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
