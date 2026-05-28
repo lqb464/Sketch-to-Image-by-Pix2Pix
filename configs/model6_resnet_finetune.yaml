@@ -56,5 +56,5 @@ print_freq: 100
 num_test: 100
 
 # --- Output ---
-name: m6_resnet18             # giữ nguyên tên để load checkpoint giai đoạn 1
+name: m6_resnet18_lambda100_basic_vanilla             # giữ nguyên tên để load checkpoint giai đoạn 1
 checkpoints_dir: ./checkpoints
