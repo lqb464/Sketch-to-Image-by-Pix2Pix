@@ -94,7 +94,7 @@ def define_G(input_nc, output_nc, ngf, netG, norm="batch", backbone="resnet18", 
     elif netG == "vgg":
         net = VGGGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, freeze_encoder=freeze_encoder)
     elif netG == 'resnet_pretrained':
-        net = ResNetGenerator(input_nc, output_nc, 
+        net = ResNetPretrainedGenerator(input_nc, output_nc, 
                              backbone=backbone,
                              freeze_encoder=freeze_encoder)
         for name, module in net.named_children():
@@ -429,7 +429,7 @@ class NLayerDiscriminator(nn.Module):
         return self.model(input)
     
 
-class ResNetGenerator(nn.Module):
+class ResNetPretrainedGenerator(nn.Module):
     def __init__(self, input_nc=3, output_nc=3, backbone='resnet18',
                  pretrained=True, freeze_encoder=True):
         super().__init__()
