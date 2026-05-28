@@ -47,7 +47,7 @@ continue_train: false
 
 # --- Logging & W&B ---
 use_wandb: true
-wandb_project_name: m6_resnet18
+wandb_project_name: m6_resnet18_basic_vanilla 
 display_freq: 400
 print_freq: 100
 num_test: 100
