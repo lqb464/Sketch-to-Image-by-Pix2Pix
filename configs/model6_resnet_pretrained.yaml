@@ -53,7 +53,7 @@ print_freq: 100
 num_test: 100
 
 # --- Output ---
-name: m6_resnet18
+name: m6_resnet18_lambda100_basic_vanilla
 checkpoints_dir: ./checkpoints
 
 # =============================================================================
