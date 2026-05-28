@@ -68,7 +68,14 @@ class Visualizer:
                 self.wandb_entity = getattr(opt, "wandb_entity", "Sketch2Image")
                 wandb_project_alias = getattr(opt, "wandb_project", "")
                 self.wandb_project_name = wandb_project_alias if wandb_project_alias else getattr(opt, "wandb_project_name", "pix2pix-sketch2image")
-                self.wandb_run = wandb.init(entity=self.wandb_entity, project=self.wandb_project_name, name=opt.name, config=opt) if not wandb.run else wandb.run
+                self.wandb_run = wandb.init(
+                                    entity=self.wandb_entity,
+                                    project=self.wandb_project_name,
+                                    name=opt.name,
+                                    id=opt.name,          # dùng name làm id cố định
+                                    resume='allow',       # resume nếu đã có run với id này
+                                    config=opt
+                                ) if not wandb.run else wandb.run
                 self.wandb_run._label(repo="pix2pix-sketch2image")
             else:
                 self.wandb_run = None
