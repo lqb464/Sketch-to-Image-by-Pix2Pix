@@ -1,0 +1,60 @@
+# =============================================================================
+# Model 6 — Pix2Pix + ResNet18 Pretrained Generator
+# Giai đoạn 2 (epoch 51-150): unfreeze encoder, fine-tune toàn bộ
+# Load checkpoint từ model6_resnet_pretrained (giai đoạn 1)
+# =============================================================================
+
+# --- Dataset ---
+dataroot: ./datasets/sketch10
+dataset_mode: aligned
+direction: BtoA
+load_size: 286
+crop_size: 256
+preprocess: resize_and_crop
+no_flip: false
+num_threads: 2
+
+# --- Model ---
+model: pix2pix
+netG: resnet_pretrained
+backbone: resnet18
+netD: basic
+norm: instance
+no_dropout: false
+init_type: normal
+init_gain: 0.02
+gan_mode: vanilla
+lambda_L1: 100
+
+# --- Transfer Learning ---
+freeze_encoder: false                # unfreeze toàn bộ
+
+# --- Train ---
+batch_size: 4
+n_epochs: 100                        # 100 epoch lr cố định
+n_epochs_decay: 50                   # 50 epoch decay → tổng giai đoạn 2: 150 epoch
+                                     # tổng cả 2 giai đoạn: 200 epoch
+lr: 0.00005                          # nhỏ hơn 4x để bảo vệ pretrained weights
+lr_policy: linear
+beta1: 0.5
+
+# --- Reproducibility ---
+seed: 42
+
+# --- Checkpointing ---
+save_latest_freq: 5000
+save_epoch_freq: 10
+save_by_iter: false
+continue_train: true                 # load checkpoint từ giai đoạn 1
+epoch_count: 51                      # bắt đầu đếm từ epoch 51
+
+# --- Logging & W&B ---
+use_wandb: true
+wandb_project: sketch-to-image            
+display_freq: 400
+print_freq: 100
+num_test: 100
+
+# --- Output ---
+name: m6_resnet18             # giữ nguyên tên để load checkpoint giai đoạn 1
+checkpoints_dir: ./checkpoints
