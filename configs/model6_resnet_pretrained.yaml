@@ -1,0 +1,71 @@
+# =============================================================================
+# Model 6 — Pix2Pix + ResNet18 Pretrained Generator
+# Giai đoạn 1 (epoch 1-50): freeze encoder, chỉ train decoder + D
+# =============================================================================
+
+# --- Dataset ---
+dataroot: ./datasets/sketch10
+dataset_mode: aligned
+direction: BtoA
+load_size: 286
+crop_size: 256
+preprocess: resize_and_crop
+no_flip: false
+num_threads: 2
+
+# --- Model ---
+model: pix2pix
+netG: resnet_pretrained
+backbone: resnet18                   # resnet18 | resnet34 | resnet50 | resnet101
+netD: basic
+norm: instance
+no_dropout: false
+init_type: normal
+init_gain: 0.02
+gan_mode: vanilla
+lambda_L1: 100
+
+# --- Transfer Learning ---
+freeze_encoder: true
+
+# --- Train ---
+batch_size: 4
+n_epochs: 50                         # giai đoạn 1: 50 epoch freeze
+n_epochs_decay: 0                    # chưa decay ở giai đoạn 1
+lr: 0.0002
+lr_policy: linear
+beta1: 0.5
+
+# --- Reproducibility ---
+seed: 42
+
+# --- Checkpointing ---
+save_latest_freq: 5000
+save_epoch_freq: 10
+save_by_iter: false
+continue_train: false
+
+# --- Logging & W&B ---
+use_wandb: true
+wandb_project_name: m6_resnet18
+display_freq: 400
+print_freq: 100
+num_test: 100
+
+# --- Output ---
+name: m6_resnet18
+checkpoints_dir: ./checkpoints
+
+# =============================================================================
+# Ablation variants (chạy riêng từng cái, giữ các thứ còn lại là baseline):
+#
+# [lambda_L1]
+#   m6_lambda50:   lambda_L1: 50,  name: m6_resnet18_lambda50_frozen
+#   m6_lambda200:  lambda_L1: 200, name: m6_resnet18_lambda200_frozen
+#
+# [gan_mode]
+#   m6_lsgan:      gan_mode: lsgan, name: m6_resnet18_lsgan_frozen
+#
+# [netD]
+#   m6_pixel:      netD: pixel,    name: m6_resnet18_pixelD_frozen
+# =============================================================================

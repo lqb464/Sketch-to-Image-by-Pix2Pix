@@ -66,7 +66,8 @@ class Visualizer:
             # Only initialize wandb on main process (rank 0)
             if not dist.is_initialized() or dist.get_rank() == 0:
                 self.wandb_entity = getattr(opt, "wandb_entity", "Sketch2Image")
-                self.wandb_project_name = getattr(opt, "wandb_project_name", "pix2pix-sketch2image")
+                wandb_project_alias = getattr(opt, "wandb_project", "")
+                self.wandb_project_name = wandb_project_alias if wandb_project_alias else getattr(opt, "wandb_project_name", "pix2pix-sketch2image")
                 self.wandb_run = wandb.init(entity=self.wandb_entity, project=self.wandb_project_name, name=opt.name, config=opt) if not wandb.run else wandb.run
                 self.wandb_run._label(repo="pix2pix-sketch2image")
             else:
@@ -96,7 +97,7 @@ class Visualizer:
         # Assuming epoch starts from 1 and epoch_iter is cumulative within epoch
         return (epoch - 1) * self.dataset_size + epoch_iter
 
-    def display_current_results(self, visuals, epoch: int, total_iters: int, save_result=False):
+    def display_current_results(self, visuals, epoch: int, total_iters: int, save_result=False, prefix="results", save_html=True):
         """Save current results to wandb and HTML file."""
         # Only display results on main process (rank 0)
         if "LOCAL_RANK" in os.environ and dist.is_initialized() and dist.get_rank() != 0:
@@ -107,10 +108,10 @@ class Visualizer:
             for label, image in visuals.items():
                 image_numpy = util.tensor2im(image)
                 wandb_image = wandb.Image(image_numpy, caption=f"{label} - Step {total_iters}")
-                ims_dict[f"results/{label}"] = wandb_image
+                ims_dict[f"{prefix}/{label}"] = wandb_image
             self.wandb_run.log(ims_dict, step=total_iters)
 
-        if self.use_html and (save_result or not self.saved):  # save images to an HTML file if they haven't been saved.
+        if save_html and self.use_html and (save_result or not self.saved):  # save images to an HTML file if they haven't been saved.
             self.saved = True
             # save images to the disk
             for label, image in visuals.items():
