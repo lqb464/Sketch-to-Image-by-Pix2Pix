@@ -50,7 +50,7 @@ epoch_count: 51                      # bắt đầu đếm từ epoch 51
 
 # --- Logging & W&B ---
 use_wandb: true
-wandb_project: sketch-to-image            
+wandb_project_name: m6_resnet18
 display_freq: 400
 print_freq: 100
 num_test: 100
