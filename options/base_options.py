@@ -35,7 +35,7 @@ class BaseOptions:
         parser.add_argument("--norm", type=str, default="instance", help="instance normalization or batch normalization [instance | batch | none | syncbatch]")
         parser.add_argument('--backbone', type=str, default='resnet18',
                     help='pretrained backbone for generator: resnet18 | resnet34 | resnet50 | resnet101')
-        parser.add_argument("--freeze_encoder", type=lambda x: x.lower() != "false", default=True)
+        parser.add_argument('--freeze_encoder', action='store_true', help='freeze encoder weights during training')
         parser.add_argument("--init_type", type=str, default="normal", help="network initialization [normal | xavier | kaiming | orthogonal]")
         parser.add_argument("--init_gain", type=float, default=0.02, help="scaling factor for normal, xavier and orthogonal.")
         parser.add_argument("--no_dropout", action="store_true", help="no dropout for the generator")
