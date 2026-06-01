@@ -72,8 +72,8 @@ eval_batch_size: 1
 eval_num_threads: 0
 eval_flip: false                     # không augmentation khi đánh giá
 eval_num_fid_images: 100             # FID/KID
-eval_kid_subsets: 10
-eval_kid_subset_size: 50
+eval_kid_subset_size: 10
+eval_kid_subsets: 5
 no_eval_test_images: false           # log ảnh test/results lên W&B
 
 # --- Output ---
