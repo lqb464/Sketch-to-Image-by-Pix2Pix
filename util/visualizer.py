@@ -4,6 +4,7 @@ import ntpath
 import time
 from . import util, html
 from pathlib import Path
+from datetime import datetime
 import wandb
 import os
 import torch.distributed as dist
@@ -43,20 +44,28 @@ class Visualizer:
                 self.wandb_project_name = wandb_project_alias if wandb_project_alias else getattr(opt, "wandb_project_name", "pix2pix-sketch2image")
 
                 run_id_file = Path(opt.checkpoints_dir) / opt.name / "wandb_run_id.txt"
+                run_name_file = Path(opt.checkpoints_dir) / opt.name / "wandb_run_name.txt"
                 run_id_file.parent.mkdir(parents=True, exist_ok=True)
 
-                if run_id_file.exists():
+                should_resume_wandb = bool(getattr(opt, "continue_train", False))
+                if should_resume_wandb and run_id_file.exists():
                     run_id = run_id_file.read_text().strip()
+                    run_name = run_name_file.read_text().strip() if run_name_file.exists() else opt.name
+                    resume_mode = "allow"
                 else:
                     run_id = wandb.util.generate_id()
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    run_name = f"{opt.name}_{timestamp}"
                     run_id_file.write_text(run_id)
+                    run_name_file.write_text(run_name)
+                    resume_mode = "never"
 
                 self.wandb_run = wandb.init(
                     entity=self.wandb_entity,
                     project=self.wandb_project_name,
-                    name=opt.name,
+                    name=run_name,
                     id=run_id,
-                    resume='allow',
+                    resume=resume_mode,
                     config=opt
                 ) if not wandb.run else wandb.run
                 self.wandb_run._label(repo="pix2pix-sketch2image")

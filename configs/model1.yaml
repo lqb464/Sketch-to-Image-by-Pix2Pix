@@ -44,8 +44,8 @@ num_test: 100
 eval_batch_size: 1
 eval_num_threads: 0
 eval_num_fid_images: 100
-eval_kid_subsets: 10
-eval_kid_subset_size: 50
+eval_kid_subset_size: 10
+eval_kid_subsets: 5
 
 name: notebook_unet128_standalone_l1_lambda60
 checkpoints_dir: ./checkpoints
