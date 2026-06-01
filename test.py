@@ -34,6 +34,7 @@ from data import create_dataset
 from models import create_model
 from util.visualizer import save_images
 from util import html
+from util.util import seed_everything
 import torch
 
 try:
@@ -44,6 +45,7 @@ except ImportError:
 
 if __name__ == "__main__":
     opt = TestOptions().parse()  # get test options
+    seed_everything(opt.seed)
     opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # hard-code some parameters for test
     opt.num_threads = 0  # test code only supports num_threads = 0

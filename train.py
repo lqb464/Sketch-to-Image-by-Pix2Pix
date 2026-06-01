@@ -25,11 +25,37 @@ from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
 from util.evaluator import TestSetEvaluator
-from util.util import init_ddp, cleanup_ddp
+from util.util import init_ddp, cleanup_ddp, seed_everything
+
+
+def configure_two_phase(model, opt, epoch, current_phase):
+    if not getattr(opt, "two_phase_train", False):
+        return current_phase
+
+    phase1_epochs = int(getattr(opt, "phase1_epochs", 0))
+    next_phase = 1 if epoch <= phase1_epochs else 2
+    if next_phase == current_phase:
+        return current_phase
+
+    if next_phase == 1:
+        freeze_encoder = bool(getattr(opt, "phase1_freeze_encoder", True))
+        lr = float(getattr(opt, "phase1_lr", opt.lr))
+    else:
+        freeze_encoder = bool(getattr(opt, "phase2_freeze_encoder", False))
+        lr = float(getattr(opt, "phase2_lr", opt.lr))
+
+    if hasattr(model, "set_encoder_requires_grad"):
+        model.set_encoder_requires_grad(not freeze_encoder)
+    model.set_learning_rate(lr)
+    opt.lr = lr
+    encoder_state = "frozen" if freeze_encoder else "trainable"
+    print(f"[Two-phase] epoch {epoch}: phase {next_phase}, VGG encoder {encoder_state}, lr={lr:.7f}")
+    return next_phase
 
 
 if __name__ == "__main__":
     opt = TrainOptions().parse()  # get training options
+    seed_everything(opt.seed)
     opt.device = init_ddp()
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     dataset_size = len(dataset)  # get the number of images in the dataset.
@@ -40,7 +66,9 @@ if __name__ == "__main__":
     visualizer = Visualizer(opt)  # create a visualizer that display/save images and plots
     evaluator = TestSetEvaluator(opt, visualizer)
     total_iters = 0  # the total number of training iterations
+    current_training_phase = None
     for epoch in range(opt.epoch_count, opt.n_epochs + opt.n_epochs_decay + 1):
+        current_training_phase = configure_two_phase(model, opt, epoch, current_training_phase)
         epoch_start_time = time.time()  # timer for entire epoch
         iter_data_time = time.time()  # timer for data loading per iteration
         epoch_iter = 0  # the number of training iterations in current epoch, reset to 0 every epoch

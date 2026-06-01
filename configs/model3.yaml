@@ -1,0 +1,82 @@
+# =============================================================================
+# Model 5 - Pix2Pix + VGG19 two-phase transfer learning
+# Mục tiêu: chạy đủ 2 phase trong cùng một training job/config.
+#
+#   Phase 1 (epoch 1-50):   freeze VGG19 encoder, train decoder + D
+#                           lr = 0.0002
+#   Phase 2 (epoch 51-100): unfreeze VGG19 encoder, fine-tune toàn bộ G + D
+#                           lr = 0.00005, decay tuyến tính tới cuối run
+# =============================================================================
+
+# --- Dataset ---
+dataroot: /kaggle/input/sketch2image-dataset/cufs       # đường dẫn local; trên Kaggle dùng đường dẫn kagglehub
+dataset_mode: aligned                # ảnh đôi A|B ghép ngang
+direction: BtoA                      # A = ảnh thật, B = sketch -> sinh ảnh thật từ sketch
+load_size: 256                       # resize về 256; crop là no-op vì load_size == crop_size
+crop_size: 256
+preprocess: resize_and_crop
+no_flip: false                       # random horizontal flip khi train
+num_threads: 2
+
+# --- Model ---
+model: pix2pix
+netG: vgg                            # VGG19 pretrained encoder + skip-connection decoder
+netD: basic                          # PatchGAN 70x70
+norm: batch
+no_dropout: false                    # bật Dropout trong decoder
+init_type: normal
+init_gain: 0.02
+gan_mode: vanilla
+
+# --- Two-phase transfer learning ---
+two_phase_train: true
+freeze_encoder: true                 # trạng thái khởi tạo cho phase 1
+phase1_epochs: 100
+phase1_freeze_encoder: true
+phase1_lr: 0.0002
+phase2_freeze_encoder: false
+phase2_lr: 0.00005
+
+# --- Loss weight ---
+lambda_L1: 100
+
+# --- Train ---
+batch_size: 4                        # giảm xuống 2 nếu OOM
+n_epochs: 100                        # giữ LR phase 1 trong 100 epoch đầu
+n_epochs_decay: 100                  # phase 2 decay tuyến tính trong 100 epoch sau
+lr: 0.0002                           # LR khởi tạo; phase switch sẽ đổi sang phase2_lr
+lr_policy: linear
+beta1: 0.5
+
+# --- Reproducibility ---
+seed: 42
+
+# --- Checkpointing ---
+save_latest_freq: 5000
+save_epoch_freq: 10
+save_by_iter: false
+continue_train: false                # false vì phase 1 -> phase 2 chạy liền trong cùng job
+
+# --- Logging & W&B ---
+use_wandb: true
+wandb_project: sketch
+wandb_entity: Sketch2Image
+display_freq: 400
+print_freq: 100
+
+# --- Periodic evaluation ---
+eval_test_freq: 5000                 # >0 để compute metric định kỳ và log lên W&B
+eval_phase: test                     # dùng thư mục <dataroot>/test
+num_test: 100                        # MAE/PSNR/SSIM/MS-SSIM/LPIPS
+eval_batch_size: 1
+eval_num_threads: 0
+eval_flip: false                     # không augmentation khi đánh giá
+eval_num_fid_images: 100             # FID/KID
+eval_kid_subsets: 10
+eval_kid_subset_size: 50
+no_eval_test_images: false           # log ảnh test/results lên W&B
+
+# --- Output ---
+name: m5_vgg19_two_phase
+checkpoints_dir: ./checkpoints
+# =============================================================================

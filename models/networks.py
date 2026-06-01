@@ -43,7 +43,7 @@ def get_scheduler(optimizer, opt):
     return scheduler
 
 
-def init_weights(net, init_type="normal", init_gain=0.02):
+def init_weights(net, init_type="normal", init_gain=0.02, print_info=True):
     def init_func(m):
         classname = m.__class__.__name__
         if hasattr(m, "weight") and (classname.find("Conv") != -1 or classname.find("Linear") != -1):
@@ -62,7 +62,8 @@ def init_weights(net, init_type="normal", init_gain=0.02):
         elif classname.find("BatchNorm2d") != -1:
             init.normal_(m.weight.data, 1.0, init_gain)
             init.constant_(m.bias.data, 0.0)
-    print("initialize network with %s" % init_type)
+    if print_info:
+        print("initialize network with %s" % init_type)
     net.apply(init_func)
 
 
@@ -76,7 +77,11 @@ def init_net(net, init_type="normal", init_gain=0.02):
         else:
             net.to(0)
             print("Initialized with device cuda:0")
-    init_weights(net, init_type, init_gain=init_gain)
+    if hasattr(net, "init_custom_weights"):
+        print("initialize network with %s" % init_type)
+        net.init_custom_weights(init_type, init_gain=init_gain)
+    else:
+        init_weights(net, init_type, init_gain=init_gain)
     return net
 
 
@@ -335,9 +340,7 @@ class VGGGenerator(nn.Module):
         self.enc5 = vgg[27:36]
 
         if freeze_encoder:
-            for enc in [self.enc1, self.enc2, self.enc3, self.enc4, self.enc5]:
-                for param in enc.parameters():
-                    param.requires_grad = False
+            self.set_encoder_requires_grad(False)
 
         uprelu = nn.ReLU(True)
         upconv5 = nn.ConvTranspose2d(512,  512, kernel_size=4, stride=2, padding=1, bias=use_bias)
@@ -362,6 +365,15 @@ class VGGGenerator(nn.Module):
             self.dec2 = nn.Sequential(upconv2, upnorm2, uprelu)
 
         self.dec1 = nn.Sequential(upconv1, uprelu, nn.Conv2d(64, output_nc, kernel_size=3, padding=1), nn.Tanh())
+
+    def set_encoder_requires_grad(self, requires_grad):
+        for enc in [self.enc1, self.enc2, self.enc3, self.enc4, self.enc5]:
+            for param in enc.parameters():
+                param.requires_grad = requires_grad
+
+    def init_custom_weights(self, init_type="normal", init_gain=0.02):
+        for decoder in [self.dec5, self.dec4, self.dec3, self.dec2, self.dec1]:
+            init_weights(decoder, init_type, init_gain=init_gain, print_info=False)
 
     def forward(self, x):
         e1 = self.enc1(x)

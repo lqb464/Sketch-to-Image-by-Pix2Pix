@@ -20,7 +20,8 @@ class BaseOptions:
     def initialize(self, parser):
         """Define the common options that are used in both training and test."""
         # basic parameters
-        parser.add_argument("--dataroot", required=True, help="path to images (should have subfolders trainA, trainB, valA, valB, etc)")
+        parser.add_argument("--config", "--config_file", dest="config", type=str, default=None, help="path to a YAML config file")
+        parser.add_argument("--dataroot", default=None, help="path to images (should have subfolders trainA, trainB, valA, valB, etc)")
         parser.add_argument("--name", type=str, default="experiment_name", help="name of the experiment. It decides where to store samples and models")
         parser.add_argument("--checkpoints_dir", type=str, default="./checkpoints", help="models are saved here")
         # model parameters
@@ -54,6 +55,7 @@ class BaseOptions:
         parser.add_argument("--load_iter", type=int, default="0", help="which iteration to load? if load_iter > 0, the code will load models by iter_[load_iter]; otherwise, the code will load models by [epoch]")
         parser.add_argument("--verbose", action="store_true", help="if specified, print more debugging information")
         parser.add_argument("--suffix", default="", type=str, help="customized suffix: opt.name = opt.name + suffix: e.g., {model}_{netG}_size{load_size}")
+        parser.add_argument("--seed", type=int, default=None, help="random seed for reproducible training and evaluation")
         # wandb parameters
         parser.add_argument("--use_wandb", action="store_true", help="if specified, then init wandb logging")
         parser.add_argument("--wandb_project_name", type=str, default="CycleGAN-and-pix2pix", help="specify wandb project name")
@@ -61,6 +63,21 @@ class BaseOptions:
         parser.add_argument("--wandb_entity", type=str, default="Sketch2Image", help="wandb entity/user/team name")
         self.initialized = True
         return parser
+
+    @staticmethod
+    def _parser_dests(parser):
+        return {action.dest for action in parser._actions if action.dest != "help"}
+
+    @staticmethod
+    def _load_config_defaults(config_path):
+        import yaml
+
+        path = Path(config_path)
+        with path.open("rt", encoding="utf-8") as config_file:
+            config = yaml.safe_load(config_file) or {}
+        if not isinstance(config, dict):
+            raise ValueError(f"Config file must contain a YAML mapping: {path}")
+        return config
 
     def gather_options(self):
         """Initialize our parser with basic options(only once).
@@ -74,6 +91,12 @@ class BaseOptions:
 
         # get the basic options
         opt, _ = parser.parse_known_args()
+        config_defaults = {}
+        if opt.config:
+            config_defaults = self._load_config_defaults(opt.config)
+            known_defaults = {k: v for k, v in config_defaults.items() if k in self._parser_dests(parser)}
+            parser.set_defaults(**known_defaults)
+            opt, _ = parser.parse_known_args()
 
         # modify model-related parser options
         model_name = opt.model
@@ -86,9 +109,19 @@ class BaseOptions:
         dataset_option_setter = data.get_option_setter(dataset_name)
         parser = dataset_option_setter(parser, self.isTrain)
 
+        if config_defaults:
+            known_dests = self._parser_dests(parser)
+            unknown_keys = sorted(k for k in config_defaults if k not in known_dests)
+            if unknown_keys:
+                parser.error(f"unknown config option(s): {', '.join(unknown_keys)}")
+            parser.set_defaults(**config_defaults)
+
         # save and return the parser
         self.parser = parser
-        return parser.parse_args()
+        opt = parser.parse_args()
+        if not opt.dataroot:
+            parser.error("--dataroot is required unless it is provided by --config/--config_file")
+        return opt
 
     def print_options(self, opt):
         """Print and save options

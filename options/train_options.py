@@ -30,6 +30,13 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--pool_size', type=int, default=50, help='the size of image buffer that stores previously generated images')
         parser.add_argument('--lr_policy', type=str, default='linear', help='learning rate policy. [linear | step | plateau | cosine]')
         parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
+        # two-phase VGG transfer learning parameters
+        parser.add_argument('--two_phase_train', action='store_true', help='run frozen-encoder phase followed by fine-tuning in one training job')
+        parser.add_argument('--phase1_epochs', type=int, default=0, help='number of initial epochs before switching to phase 2')
+        parser.add_argument('--phase1_lr', type=float, default=0.0002, help='learning rate used during phase 1')
+        parser.add_argument('--phase1_freeze_encoder', type=lambda x: x.lower() != "false", default=True, help='whether to freeze the VGG encoder during phase 1')
+        parser.add_argument('--phase2_lr', type=float, default=0.00005, help='learning rate used after switching to phase 2')
+        parser.add_argument('--phase2_freeze_encoder', type=lambda x: x.lower() != "false", default=False, help='whether to freeze the VGG encoder during phase 2')
         # periodic test-set evaluation and logging parameters
         parser.add_argument('--eval_test_freq', type=int, default=0, help='if > 0, run test-set evaluation every N training iterations')
         parser.add_argument('--eval_phase', type=str, default='test', help='dataset split name used for periodic evaluation')

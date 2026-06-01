@@ -3,6 +3,7 @@ torchvision>=0.15.0
 scikit-image
 dominate>=2.8.0
 Pillow>=10.0.0
+PyYAML>=6.0.0
 wandb>=0.16.0
 torchmetrics[image]>=1.4.0
 torch-fidelity>=0.3.0

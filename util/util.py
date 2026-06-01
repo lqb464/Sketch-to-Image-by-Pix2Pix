@@ -1,12 +1,24 @@
 """This module contains simple helper functions"""
 
 from __future__ import print_function
+import random
 import torch
 import numpy as np
 from PIL import Image
 from pathlib import Path
 import torch.distributed as dist
 import os
+
+
+def seed_everything(seed):
+    """Seed Python, NumPy, and PyTorch when a seed is provided."""
+    if seed is None:
+        return
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def tensor2im(input_image, imtype=np.uint8):

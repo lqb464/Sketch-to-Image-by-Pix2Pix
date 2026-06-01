@@ -131,3 +131,16 @@ class Pix2PixModel(BaseModel):
         self.optimizer_G.zero_grad()  # set G's gradients to zero
         self.backward_G()  # calculate graidents for G
         self.optimizer_G.step()  # update G's weights
+
+    def set_encoder_requires_grad(self, requires_grad):
+        netG = self.netG
+        if hasattr(netG, "module"):
+            netG = netG.module
+        if hasattr(netG, "_orig_mod"):
+            netG = netG._orig_mod
+        if hasattr(netG, "set_encoder_requires_grad"):
+            netG.set_encoder_requires_grad(requires_grad)
+            state = "trainable" if requires_grad else "frozen"
+            print(f"VGG encoder is now {state}")
+            return True
+        return False

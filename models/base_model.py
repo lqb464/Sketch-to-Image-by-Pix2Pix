@@ -136,6 +136,23 @@ class BaseModel(ABC):
                 net = getattr(self, "net" + name)
                 net.eval()
 
+    def train(self):
+        """Make models train mode after evaluation."""
+        for name in self.model_names:
+            if isinstance(name, str):
+                net = getattr(self, "net" + name)
+                net.train()
+
+    def set_learning_rate(self, lr):
+        """Set optimizer learning rates and keep scheduler base rates in sync."""
+        for optimizer in self.optimizers:
+            for param_group in optimizer.param_groups:
+                param_group["lr"] = lr
+        for scheduler in getattr(self, "schedulers", []):
+            if hasattr(scheduler, "base_lrs"):
+                scheduler.base_lrs = [lr for _ in scheduler.base_lrs]
+        print(f"learning rate set to {lr:.7f}")
+
     def test(self):
         """Forward function used in test time.
 
