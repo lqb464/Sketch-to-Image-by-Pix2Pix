@@ -38,7 +38,7 @@ wandb_entity: Sketch2Image
 display_freq: 400
 print_freq: 100
 
-eval_test_freq: 5000
+eval_test_freq: 100
 eval_phase: test
 num_test: 100
 eval_batch_size: 1

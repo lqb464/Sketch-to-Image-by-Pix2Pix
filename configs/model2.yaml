@@ -34,9 +34,20 @@ save_by_iter: false
 
 use_wandb: true
 wandb_project: sketch
+wandb_entity: Sketch2Image
+display_freq: 400
 print_freq: 100
 
+eval_test_freq: 200
+eval_phase: test
 num_test: 100
+eval_batch_size: 1
+eval_num_threads: 0
+eval_flip: false
+eval_num_fid_images: 100
+eval_kid_subsets: 10
+eval_kid_subset_size: 50
+no_eval_test_images: false
 
 name: cufs_ablation_c_unet256_pixel_vanilla
 checkpoints_dir: ./checkpoints

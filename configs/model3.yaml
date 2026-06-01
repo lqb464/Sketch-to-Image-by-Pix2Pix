@@ -65,7 +65,7 @@ display_freq: 400
 print_freq: 100
 
 # --- Periodic evaluation ---
-eval_test_freq: 5000                 # >0 để compute metric định kỳ và log lên W&B
+eval_test_freq: 100                 # >0 để compute metric định kỳ và log lên W&B
 eval_phase: test                     # dùng thư mục <dataroot>/test
 num_test: 100                        # MAE/PSNR/SSIM/MS-SSIM/LPIPS
 eval_batch_size: 1
