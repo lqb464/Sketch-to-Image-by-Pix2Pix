@@ -8,3 +8,4 @@ wandb>=0.16.0
 torchmetrics[image]>=1.4.0
 torch-fidelity>=0.3.0
 facenet-pytorch>=2.6.0
+opencv-python

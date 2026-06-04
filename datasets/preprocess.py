@@ -86,29 +86,6 @@ def find_pairs(sketch_dir: Path, photo_dir: Path):
 
 
 # ─────────────────────────────────────────────
-# Bbox → Square crop (dùng cho sketch)
-# ─────────────────────────────────────────────
-
-def bbox_to_square(x1: int, y1: int, x2: int, y2: int,
-                   img_w: int, img_h: int) -> tuple:
-    """
-    Mở rộng bbox thành hình vuông: lấy cạnh dài hơn, giữ nguyên center.
-    Clamp về biên ảnh.
-    """
-    cx   = (x1 + x2) // 2
-    cy   = (y1 + y2) // 2
-    side = max(x2 - x1, y2 - y1)
-    half = side // 2
-
-    sx1 = max(0, cx - half)
-    sy1 = max(0, cy - half)
-    sx2 = min(img_w, sx1 + side)
-    sy2 = min(img_h, sy1 + side)
-
-    return sx1, sy1, sx2, sy2
-
-
-# ─────────────────────────────────────────────
 # Luồng PHOTO — resize trực tiếp
 # ─────────────────────────────────────────────
 
@@ -125,29 +102,20 @@ def process_photo(photo_np: np.ndarray, out_size: int) -> np.ndarray:
 
 def process_sketch(sketch_np: np.ndarray, out_size: int) -> tuple:
     """
-    Tìm bbox nét vẽ bằng threshold → crop vuông → resize.
-    Trả về (cropped_np, True) nếu thành công,
-            (None, False) nếu không tìm được bbox.
+    Kiểm tra nét vẽ bằng threshold → resize toàn bộ ảnh gốc.
+    Trả về (resized_np, True) nếu thành công,
+            (None, False) nếu không có nét vẽ.
     """
-    H, W      = sketch_np.shape[:2]
     gray      = cv2.cvtColor(sketch_np, cv2.COLOR_RGB2GRAY)
     _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
     coords    = cv2.findNonZero(binary)
 
+    # Kiểm tra nếu ảnh trống (không có nét vẽ)
     if coords is None:
         return None, False
 
-    x, y, w, h = cv2.boundingRect(coords)
-    if w < 5 or h < 5:
-        return None, False
-
-    sx1, sy1, sx2, sy2 = bbox_to_square(x, y, x + w, y + h, W, H)
-    crop               = sketch_np[sy1:sy2, sx1:sx2]
-
-    if crop.size == 0:
-        return None, False
-
-    resized = cv2.resize(crop, (out_size, out_size), interpolation=cv2.INTER_LANCZOS4)
+    # Resize thẳng toàn bộ ảnh gốc về kích thước mới
+    resized = cv2.resize(sketch_np, (out_size, out_size), interpolation=cv2.INTER_LANCZOS4)
     return resized, True
 
 
