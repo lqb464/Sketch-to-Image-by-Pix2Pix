@@ -5,7 +5,9 @@ Repo của nhóm tái hiện và mở rộng mô hình **pix2pix** cho bài toá
 - **Repo gốc:** https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
 - **W&B tracking:** https://wandb.ai/ *(liên hệ Bình để được thêm vào project)*
 - **Checkpoint:** Kaggle Dataset private *(liên hệ Bình để được thêm vào)*
+- **Demo app:** Xem hướng dẫn tại [DEMO_APP_README][demo_link] để setup
 
+[demo_link]: https://github.com/lqb464/Sketch-to-Image-by-Pix2Pix/blob/dev/DEMO_APP_README.md
 ---
 
 ## 1. Setup trên Kaggle
@@ -178,8 +180,56 @@ Ví dụ:
 ```
 
 ---
+## 7. Demo App bằng Gradio
 
-## 7. Lưu ý
+Xem chi tiết hướng dẫn tại [DEMO_APP_README][demo_link] để setup
+
+[demo_link]: https://github.com/lqb464/Sketch-to-Image-by-Pix2Pix/blob/dev/DEMO_APP_README.md
+
+![Giao diện app](docs/app_interface.png)
+
+![Chạy demo](docs/test_app.png)
+
+###  Cách chạy
+
+**Option 1: Chạy script **
+```bash
+chmod +x run_app.sh
+./run_app.sh
+```
+
+**Option 2: Chạy thủ công**
+```bash
+# Cài đặt dependencies
+pip install -r requirements_app.txt
+
+# Chạy app
+python app.py
+```
+
+App sẽ mở tại **http://127.0.0.1:7860** 
+hoặc public link sẽ xuất hiện ( nếu chạy trên Colab)
+
+### Cách sử dụng
+
+1. **Upload sketch** - Chọn ảnh sketch (đen trắng)
+2. **Bấm "Generate"** - Chạy model inference
+3. **Xem kết quả** - Ảnh sinh ra hiển thị ngay
+
+### Cấu hình
+
+**Đường dẫn checkpoint model**
+Có thể download checkpoint pretrained sẵn tại:
+[checkpoint_model_link][link]
+
+[link]: https://drive.google.com/file/d/1026Ia99SDo-hOSjWvLms9eAG0nAyGKdX/view?usp=sharing
+
+Mặc định app tìm model tại:
+- `results/checkpoints/best_model.pkl` 
+- `checkpoints/best_model.pkl`
+
+
+## 8. Lưu ý
 
 - **Không commit dataset** lên repo — `datasets/` đã có trong `.gitignore`
 - **Checkpoint** lưu trên Kaggle Dataset private, không push lên GitHub
