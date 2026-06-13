@@ -1,14 +1,16 @@
 # Sketch-to-Image bằng Pix2Pix
 
 Repo của nhóm tái hiện và mở rộng mô hình **pix2pix** cho bài toán **sketch → image** trên 3 dataset: `facades`, `edges2shoes`, `CUFS`.
-
+- **Report Đồ án:** Report của nhóm [BÁO CÁO CUỐI KÌ][report]
 - **Demo app:** Xem hướng dẫn tại [DEMO_APP_README][demo_link] để setup
+
 - **Repo gốc:** https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
 - **W&B tracking:** https://wandb.ai/ *(liên hệ Bình để được thêm vào project)*
 - **Checkpoint:** Kaggle Dataset private *(liên hệ Bình để được thêm vào)*
 
+[report]: https://github.com/lqb464/Sketch-to-Image-by-Pix2Pix/blob/master/report/NEVASLEEP_ĐỒ-ÁN-CK.pdf
 
-[demo_link]: https://github.com/lqb464/Sketch-to-Image-by-Pix2Pix/blob/dev/DEMO_APP_README.md
+[demo_link]: https://github.com/lqb464/Sketch-to-Image-by-Pix2Pix/blob/master/DEMO_APP_README.md
 ---
 
 ## 1. Setup trên Kaggle
